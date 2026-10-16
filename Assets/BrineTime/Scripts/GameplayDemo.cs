@@ -42,7 +42,8 @@ namespace BrineTime
             PlayerController p = null;
             while (p == null || !p.isActiveAndEnabled) { p = FindFirstObjectByType<PlayerController>(); yield return null; }
             yield return Wait(3f);
-            GameState.Persist = false;
+            GameState.Persist = false;  // never touch the real save
+            GameState.Reset();          // fresh start: bread, Driftwood Rod
             p.Automation = true;
             p.Turn(0, 8f - p.Pitch);
             var f = p.Fishing;

@@ -1,0 +1,19 @@
+{
+    "name": "BrineTime.Editor",
+    "rootNamespace": "BrineTime.EditorTools",
+    "references": [
+        "BrineTime",
+        "FishNet.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,6 +1,17 @@
-# Normalize line endings so Windows/macOS/Linux collaborators don't produce noisy diffs.
-* text=auto eol=lf
+* text=auto
+*.cs text eol=lf diff=csharp
+*.shader text eol=lf
+*.asmdef text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.unity text eol=lf merge=unityyamlmerge
+*.prefab text eol=lf merge=unityyamlmerge
+*.asset text eol=lf merge=unityyamlmerge
+*.meta text eol=lf
+*.mat text eol=lf merge=unityyamlmerge
 *.bat text eol=crlf
+*.ps1 text eol=crlf
 *.png binary
+*.jpg binary
 *.wav binary
 *.ogg binary

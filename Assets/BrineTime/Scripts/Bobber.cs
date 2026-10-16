@@ -13,6 +13,7 @@ namespace BrineTime
         public Rigidbody Body { get; private set; }
 
         int _contacts;
+        float _dunkTimer, _dunkForce;
 
         public static Bobber Create(Vector3 pos)
         {
@@ -39,6 +40,11 @@ namespace BrineTime
         {
             if (Body.isKinematic) return;
             OnLand = _contacts > 0;
+            if (_dunkTimer > 0f)
+            {
+                _dunkTimer -= Time.fixedDeltaTime;
+                Body.AddForce(Vector3.down * _dunkForce);
+            }
             var p = transform.position;
             float depth = WaterSurface.HeightAt(p.x, p.z) - p.y + Radius * 0.4f;
             InWater = depth > 0f && !OnLand;
@@ -57,6 +63,13 @@ namespace BrineTime
         }
 
         public void Tug(float strength = 0.5f) => Body.AddForce(Vector3.down * strength, ForceMode.Impulse);
+
+        /// <summary>Hold the float under for a moment (a real bite), pulling down with this many newtons.</summary>
+        public void Dunk(float seconds, float force)
+        {
+            _dunkTimer = seconds;
+            _dunkForce = force;
+        }
 
         public void ReelToward(Vector3 target, float speed)
         {

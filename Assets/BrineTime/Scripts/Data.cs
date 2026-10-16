@@ -24,6 +24,10 @@ namespace BrineTime
         public float Strength;     // how hard it fights (0.2 .. 1.6)
         public float Length;       // metres at size 1.0
         public bool Junk;
+        /// <summary>Fight personality (see FightModel). Optional; defaults to Steady.</summary>
+        public FightStyle Style = FightStyle.Steady;
+        /// <summary>Seconds of steady pressure to tire it out. 0 = auto (6 + 6 * Strength).</summary>
+        public float Stamina;
         public Color Color;
         public ModelDef Model;
     }
@@ -46,6 +50,7 @@ namespace BrineTime
         public int Cost;
         public float Reel;   // metres per second while reeling
         public float Line;   // higher = tension builds slower
+        public float Cast = 1f;  // cast distance multiplier
     }
 
     public class CoolerDef
@@ -77,6 +82,7 @@ namespace BrineTime
         public const float GoldenMult = 3f;
         public const float CleanCatchMult = 1.2f;
         public const float CleanTensionLimit = 0.85f;
+        public const float CatchOfTheDayMult = 1.5f;
 
         public static readonly string[] RarityNames = { "Common", "Uncommon", "Rare", "Legendary" };
         public static readonly Color[] RarityColors =
@@ -90,29 +96,33 @@ namespace BrineTime
         static ModelDef M(string shape, float h, float w, string tail, string pattern, Color c2, string extra = "") =>
             new ModelDef { Shape = shape, H = h, W = w, Tail = tail, Pattern = pattern, Color2 = c2, Extra = extra };
 
-        static CreatureDef Cr(string id, string name, int worth, int rarity, float strength, float length, Color color, ModelDef model, bool junk = false) =>
-            new CreatureDef { Id = id, Name = name, Worth = worth, Rarity = rarity, Strength = strength, Length = length, Color = color, Model = model, Junk = junk };
+        static CreatureDef Cr(string id, string name, int worth, int rarity, float strength, float length, Color color, ModelDef model, bool junk = false,
+                FightStyle style = FightStyle.Steady, float stamina = 0f) =>
+            new CreatureDef { Id = id, Name = name, Worth = worth, Rarity = rarity, Strength = strength, Length = length, Color = color, Model = model, Junk = junk,
+                Style = style, Stamina = stamina };
+
+        const FightStyle Steady = FightStyle.Steady, Thrasher = FightStyle.Thrasher, Runner = FightStyle.Runner;
 
         public static readonly List<CreatureDef> CreatureList = new List<CreatureDef>
         {
-            Cr("soggy_boot", "Soggy Boot", 1, 0, 0.25f, 0.30f, C(0.35f, 0.25f, 0.18f), M("boot", 0, 0, "none", "plain", C(0.2f, 0.15f, 0.1f)), junk: true),
-            Cr("puddle_minnow", "Puddle Minnow", 3, 0, 0.35f, 0.15f, C(0.72f, 0.8f, 0.84f), M("fish", 0.22f, 0.12f, "fork", "belly", C(0.95f, 0.95f, 0.95f))),
-            Cr("grumpy_perch", "Grumpy Perch", 7, 0, 0.5f, 0.28f, C(0.55f, 0.62f, 0.3f), M("fish", 0.32f, 0.14f, "round", "stripes", C(0.25f, 0.3f, 0.15f), "frown")),
-            Cr("stripe_bass", "Stripe Bass", 14, 0, 0.65f, 0.42f, C(0.5f, 0.58f, 0.45f), M("fish", 0.27f, 0.13f, "fork", "stripes", C(0.18f, 0.22f, 0.18f))),
-            Cr("mud_gulper", "Mud Gulper", 18, 0, 0.8f, 0.5f, C(0.45f, 0.36f, 0.25f), M("fish", 0.26f, 0.2f, "round", "spots", C(0.3f, 0.24f, 0.16f), "whiskers")),
-            Cr("pebblefin", "Pebblefin", 26, 1, 0.55f, 0.3f, C(0.6f, 0.58f, 0.55f), M("fish", 0.38f, 0.18f, "round", "spots", C(0.4f, 0.38f, 0.36f))),
-            Cr("snorkel_crab", "Snorkel Crab", 48, 1, 0.7f, 0.35f, C(0.9f, 0.4f, 0.25f), M("crab", 0, 0, "none", "plain", C(1f, 0.85f, 0.3f), "snorkel")),
-            Cr("glimmer_eel", "Glimmer Eel", 55, 1, 0.9f, 0.9f, C(0.3f, 0.85f, 0.8f), M("eel", 0.07f, 0.06f, "none", "spots", C(0.9f, 1f, 0.6f), "glow")),
-            Cr("moon_carp", "Moon Carp", 70, 1, 0.75f, 0.6f, C(0.9f, 0.9f, 0.75f), M("fish", 0.34f, 0.16f, "fork", "spots", C(0.85f, 0.5f, 0.2f), "whiskers")),
-            Cr("candy_wrasse", "Candy Wrasse", 85, 1, 0.7f, 0.35f, C(1f, 0.55f, 0.75f), M("fish", 0.3f, 0.12f, "round", "stripes", C(1f, 0.95f, 0.5f))),
-            Cr("static_ray", "Static Ray", 190, 1, 1.0f, 1.1f, C(0.35f, 0.4f, 0.75f), M("ray", 0, 0, "none", "spots", C(0.8f, 0.9f, 1f), "glow")),
-            Cr("tidal_tuna", "Tidal Tuna", 240, 1, 1.25f, 1.3f, C(0.25f, 0.35f, 0.55f), M("fish", 0.26f, 0.18f, "fork", "belly", C(0.85f, 0.88f, 0.9f))),
-            Cr("crowned_sunfish", "Crowned Sunfish", 260, 2, 1.1f, 0.8f, C(1f, 0.8f, 0.3f), M("fish", 0.62f, 0.14f, "round", "belly", C(1f, 0.95f, 0.75f), "crown")),
-            Cr("prism_squid", "Prism Squid", 320, 2, 0.95f, 0.6f, C(0.7f, 0.5f, 1f), M("squid", 0, 0, "none", "plain", C(0.5f, 1f, 0.95f), "glow")),
-            Cr("abyss_lantern", "Abyss Lantern", 420, 2, 1.05f, 0.7f, C(0.15f, 0.12f, 0.25f), M("fish", 0.4f, 0.22f, "round", "spots", C(0.3f, 0.25f, 0.45f), "lure")),
-            Cr("thunderhead_grouper", "Thunderhead Grouper", 650, 2, 1.3f, 1.2f, C(0.32f, 0.34f, 0.4f), M("fish", 0.36f, 0.24f, "round", "stripes", C(0.95f, 0.9f, 0.3f))),
-            Cr("old_whiskers", "Old Whiskers", 1800, 3, 1.6f, 2.0f, C(0.5f, 0.42f, 0.32f), M("fish", 0.24f, 0.2f, "round", "spots", C(0.35f, 0.28f, 0.2f), "whiskers")),
-            Cr("kraken_pup", "Kraken Pup", 2600, 3, 1.55f, 1.0f, C(0.55f, 0.15f, 0.35f), M("squid", 0, 0, "none", "plain", C(1f, 0.6f, 0.7f))),
+            Cr("soggy_boot", "Soggy Boot", 2, 0, 0.25f, 0.30f, C(0.35f, 0.25f, 0.18f), M("boot", 0, 0, "none", "plain", C(0.2f, 0.15f, 0.1f)), junk: true),
+            Cr("puddle_minnow", "Puddle Minnow", 6, 0, 0.32f, 0.15f, C(0.72f, 0.8f, 0.84f), M("fish", 0.22f, 0.12f, "fork", "belly", C(0.95f, 0.95f, 0.95f)), style: Thrasher),
+            Cr("grumpy_perch", "Grumpy Perch", 12, 0, 0.40f, 0.28f, C(0.55f, 0.62f, 0.3f), M("fish", 0.32f, 0.14f, "round", "stripes", C(0.25f, 0.3f, 0.15f), "frown")),
+            Cr("stripe_bass", "Stripe Bass", 20, 0, 0.58f, 0.42f, C(0.5f, 0.58f, 0.45f), M("fish", 0.27f, 0.13f, "fork", "stripes", C(0.18f, 0.22f, 0.18f)), style: Runner),
+            Cr("mud_gulper", "Mud Gulper", 26, 0, 0.62f, 0.5f, C(0.45f, 0.36f, 0.25f), M("fish", 0.26f, 0.2f, "round", "spots", C(0.3f, 0.24f, 0.16f), "whiskers")),
+            Cr("pebblefin", "Pebblefin", 32, 1, 0.60f, 0.3f, C(0.6f, 0.58f, 0.55f), M("fish", 0.38f, 0.18f, "round", "spots", C(0.4f, 0.38f, 0.36f)), style: Thrasher),
+            Cr("snorkel_crab", "Snorkel Crab", 48, 1, 0.80f, 0.35f, C(0.9f, 0.4f, 0.25f), M("crab", 0, 0, "none", "plain", C(1f, 0.85f, 0.3f), "snorkel")),
+            Cr("glimmer_eel", "Glimmer Eel", 55, 1, 0.85f, 0.9f, C(0.3f, 0.85f, 0.8f), M("eel", 0.07f, 0.06f, "none", "spots", C(0.9f, 1f, 0.6f), "glow"), style: Thrasher),
+            Cr("moon_carp", "Moon Carp", 70, 1, 0.82f, 0.6f, C(0.9f, 0.9f, 0.75f), M("fish", 0.34f, 0.16f, "fork", "spots", C(0.85f, 0.5f, 0.2f), "whiskers")),
+            Cr("candy_wrasse", "Candy Wrasse", 85, 1, 0.85f, 0.35f, C(1f, 0.55f, 0.75f), M("fish", 0.3f, 0.12f, "round", "stripes", C(1f, 0.95f, 0.5f)), style: Thrasher),
+            Cr("static_ray", "Static Ray", 190, 1, 1.12f, 1.1f, C(0.35f, 0.4f, 0.75f), M("ray", 0, 0, "none", "spots", C(0.8f, 0.9f, 1f), "glow"), style: Runner),
+            Cr("tidal_tuna", "Tidal Tuna", 240, 1, 1.25f, 1.3f, C(0.25f, 0.35f, 0.55f), M("fish", 0.26f, 0.18f, "fork", "belly", C(0.85f, 0.88f, 0.9f)), style: Runner),
+            Cr("crowned_sunfish", "Crowned Sunfish", 260, 2, 0.95f, 0.8f, C(1f, 0.8f, 0.3f), M("fish", 0.62f, 0.14f, "round", "belly", C(1f, 0.95f, 0.75f), "crown")),
+            Cr("prism_squid", "Prism Squid", 320, 2, 0.90f, 0.6f, C(0.7f, 0.5f, 1f), M("squid", 0, 0, "none", "plain", C(0.5f, 1f, 0.95f), "glow"), style: Thrasher),
+            Cr("abyss_lantern", "Abyss Lantern", 420, 2, 1.15f, 0.7f, C(0.15f, 0.12f, 0.25f), M("fish", 0.4f, 0.22f, "round", "spots", C(0.3f, 0.25f, 0.45f), "lure")),
+            Cr("thunderhead_grouper", "Thunderhead Grouper", 650, 2, 1.25f, 1.2f, C(0.32f, 0.34f, 0.4f), M("fish", 0.36f, 0.24f, "round", "stripes", C(0.95f, 0.9f, 0.3f))),
+            Cr("old_whiskers", "Old Whiskers", 1800, 3, 1.45f, 2.0f, C(0.5f, 0.42f, 0.32f), M("fish", 0.24f, 0.2f, "round", "spots", C(0.35f, 0.28f, 0.2f), "whiskers"), style: Runner),
+            Cr("kraken_pup", "Kraken Pup", 2600, 3, 1.50f, 1.0f, C(0.55f, 0.15f, 0.35f), M("squid", 0, 0, "none", "plain", C(1f, 0.6f, 0.7f)), style: Thrasher),
         };
 
         public static readonly Dictionary<string, CreatureDef> Creatures = BuildIndex();
@@ -126,7 +136,7 @@ namespace BrineTime
 
         public static readonly BaitDef[] Baits =
         {
-            new BaitDef { Id = "bread", Name = "Bread Crust", Cost = 0, Pack = 0, Infinite = true, Consume = 0f, Bite = new Vector2(4f, 7f),
+            new BaitDef { Id = "bread", Name = "Bread Crust", Cost = 0, Pack = 0, Infinite = true, Consume = 0f, Bite = new Vector2(3.5f, 6f),
                 Table = new Dictionary<string, int> { { "puddle_minnow", 50 }, { "grumpy_perch", 30 }, { "soggy_boot", 20 } } },
             new BaitDef { Id = "worm", Name = "Wriggle Worm", Cost = 12, Pack = 5, Consume = 0.6f, Bite = new Vector2(2.5f, 5f),
                 Table = new Dictionary<string, int> { { "grumpy_perch", 25 }, { "stripe_bass", 30 }, { "mud_gulper", 25 }, { "pebblefin", 15 }, { "soggy_boot", 5 } } },
@@ -138,15 +148,15 @@ namespace BrineTime
 
         public static readonly RodDef[] Rods =
         {
-            new RodDef { Name = "Driftwood Rod", Cost = 0, Reel = 2.2f, Line = 1.0f },
-            new RodDef { Name = "Bamboo Rod", Cost = 150, Reel = 3.0f, Line = 1.3f },
-            new RodDef { Name = "Carbon Rod", Cost = 900, Reel = 4.0f, Line = 1.7f },
-            new RodDef { Name = "Storm Rod", Cost = 4000, Reel = 5.2f, Line = 2.2f },
+            new RodDef { Name = "Driftwood Rod", Cost = 0, Reel = 2.2f, Line = 1.0f, Cast = 1.0f },
+            new RodDef { Name = "Bamboo Rod", Cost = 90, Reel = 3.0f, Line = 1.3f, Cast = 1.08f },
+            new RodDef { Name = "Carbon Rod", Cost = 750, Reel = 4.0f, Line = 1.7f, Cast = 1.16f },
+            new RodDef { Name = "Storm Rod", Cost = 6000, Reel = 5.2f, Line = 2.2f, Cast = 1.25f },
         };
 
         public static readonly CoolerDef[] Coolers =
         {
-            new CoolerDef { Name = "Bucket", Cost = 0, Slots = 4 },
+            new CoolerDef { Name = "Bucket", Cost = 0, Slots = 5 },
             new CoolerDef { Name = "Cooler", Cost = 200, Slots = 8 },
             new CoolerDef { Name = "Ice Chest", Cost = 1200, Slots = 14 },
         };
@@ -159,7 +169,7 @@ namespace BrineTime
                 Exclusive = new Dictionary<string, Dictionary<string, int>>() },
             new IslandDef { Id = "coral", Name = "Coral Key", Origin = new Vector3(420, 0, -160), Theme = "coral",
                 Sand = C(0.96f, 0.88f, 0.82f), Grass = C(0.5f, 0.74f, 0.42f), Rock = C(0.95f, 0.5f, 0.55f),
-                Baits = new[] { 0, 1, 2 }, MaxRod = 2, MaxCooler = 2, Cost = 250, Species = 5,
+                Baits = new[] { 0, 1, 2 }, MaxRod = 2, MaxCooler = 2, Cost = 300, Species = 5,
                 Exclusive = new Dictionary<string, Dictionary<string, int>>
                 {
                     { "worm", new Dictionary<string, int> { { "candy_wrasse", 10 } } },
@@ -168,7 +178,7 @@ namespace BrineTime
                 } },
             new IslandDef { Id = "storm", Name = "Stormrock", Origin = new Vector3(-360, 0, -520), Theme = "storm",
                 Sand = C(0.58f, 0.57f, 0.55f), Grass = C(0.3f, 0.42f, 0.32f), Rock = C(0.3f, 0.3f, 0.34f),
-                Baits = new[] { 0, 1, 2, 3 }, MaxRod = 3, MaxCooler = 2, Cost = 1500, Species = 10,
+                Baits = new[] { 0, 1, 2, 3 }, MaxRod = 3, MaxCooler = 2, Cost = 2000, Species = 10,
                 Exclusive = new Dictionary<string, Dictionary<string, int>>
                 {
                     { "glowberry", new Dictionary<string, int> { { "thunderhead_grouper", 5 } } },
@@ -209,18 +219,58 @@ namespace BrineTime
             return Mathf.Clamp(1f + 0.18f * (float)n, 0.45f, 1.9f);
         }
 
-        public static int CatchValue(string id, float size, bool golden, bool clean)
+        public static int CatchValue(string id, float size, bool golden, bool clean) => CatchValue(id, size, golden, clean, false);
+
+        public static int CatchValue(string id, float size, bool golden, bool clean, bool catchOfTheDay)
         {
             float v = Creatures[id].Worth * size;
             if (golden) v *= GoldenMult;
             if (clean) v *= CleanCatchMult;
+            if (catchOfTheDay) v *= CatchOfTheDayMult;
             return Mathf.Max(1, Mathf.RoundToInt(v));
+        }
+
+        /// <summary>Non-junk, non-legendary species you can hook on this island with the baits sold there.</summary>
+        public static List<string> IslandSpecies(int island)
+        {
+            var list = new List<string>();
+            foreach (int b in Islands[island].Baits)
+                foreach (var id in CatchTable(b, island).Keys)
+                {
+                    var c = Creatures[id];
+                    if (!c.Junk && c.Rarity < 3 && !list.Contains(id)) list.Add(id);
+                }
+            list.Sort(System.StringComparer.Ordinal);
+            return list;
+        }
+
+        /// <summary>
+        /// The island's "Catch of the Day" (+50% value): one species picked from the calendar date, the same
+        /// for everyone on that day (stable hash, not System.Random, so every platform agrees).
+        /// </summary>
+        public static string CatchOfTheDay(int island, System.DateTime date)
+        {
+            var pool = IslandSpecies(island);
+            if (pool.Count == 0) return null;
+            uint h = 2166136261u;
+            int key = date.Year * 10000 + date.Month * 100 + date.Day;
+            foreach (int x in new[] { key, island * 7919 + 17 })
+                for (int i = 0; i < 4; i++) { h ^= (uint)((x >> (8 * i)) & 0xff); h *= 16777619u; }
+            h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+            return pool[(int)(h % (uint)pool.Count)];
         }
 
         public static float FightStrength(string id, float size, bool golden)
         {
             float s = Creatures[id].Strength * Mathf.Lerp(0.85f, 1.2f, Mathf.InverseLerp(0.45f, 1.9f, size));
             return golden ? s * 1.25f : s;
+        }
+
+        /// <summary>Seconds of held pressure before the creature is fully tired.</summary>
+        public static float FightStamina(string id)
+        {
+            var c = Creatures[id];
+            return c.Stamina > 0f ? c.Stamina : 6f + 6f * c.Strength;
         }
 
         public static string CatchTitle(string id, bool golden) => (golden ? "Golden " : "") + Creatures[id].Name;

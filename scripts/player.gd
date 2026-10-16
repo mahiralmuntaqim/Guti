@@ -7,6 +7,7 @@ const SPRINT_SPEED := 7.0
 const JUMP_VELOCITY := 5.2
 const MOUSE_SENS := 0.0025
 const INTERACT_RANGE := 3.5
+const EYE_HEIGHT := 1.6
 
 var camera: Camera3D
 var rod_tip: Marker3D
@@ -16,6 +17,8 @@ var spawn_point := Vector3.ZERO
 var spawn_yaw := 0.0
 var ui_open := false
 var automation := false  # tests drive the player; ignore real keyboard/mouse
+var sim_move := Vector2.ZERO  # movement input used when automation is on (x = strafe, y = forward/back)
+var pitch := 0.0  # camera look up/down; yaw is the body's rotation.y
 
 var _skip_motion_events := 0
 var _step_distance := 0.0
@@ -33,10 +36,15 @@ func _ready() -> void:
 	col.position.y = 0.875
 	add_child(col)
 
+	# The body moves on fixed 60 Hz physics ticks and Godot interpolates it between ticks.
+	# The camera is detached (top_level) and placed every rendered frame at the interpolated
+	# eye position, with mouse-look applied directly, so view and movement stay smooth at any
+	# refresh rate (the same tick + smoothing split FishNet uses for owned objects).
 	camera = Camera3D.new()
-	camera.position.y = 1.6
 	camera.fov = 75.0
 	camera.current = true
+	camera.top_level = true
+	camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(camera)
 
 	_ray = RayCast3D.new()
@@ -92,12 +100,31 @@ func _build_rod() -> void:
 	_rod_pivot.add_child(rod_tip)
 
 
+func turn(yaw_delta: float, pitch_delta: float) -> void:
+	rotate_y(yaw_delta)
+	pitch = clampf(pitch + pitch_delta, -1.45, 1.45)
+	_sync_camera()
+
+
+func _process(_delta: float) -> void:
+	_sync_camera()
+
+
+func _sync_camera() -> void:
+	if not is_inside_tree():
+		return
+	var origin := get_global_transform_interpolated().origin + Vector3(0, EYE_HEIGHT, 0)
+	camera.global_transform = Transform3D(Basis.from_euler(Vector3(pitch, rotation.y, 0)), origin)
+
+
 func respawn() -> void:
 	spawn_point = World.spawn_point(Game.current_island)
 	global_position = spawn_point
 	rotation.y = spawn_yaw
-	camera.rotation.x = 0.0
+	pitch = 0.0
 	velocity = Vector3.ZERO
+	reset_physics_interpolation()  # teleport: don't smear from the old position
+	_sync_camera()
 	_step_distance = 0.0
 
 
@@ -114,8 +141,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if motion.relative.length() > 250.0:
 			return
-		rotate_y(-motion.relative.x * MOUSE_SENS)
-		camera.rotation.x = clampf(camera.rotation.x - motion.relative.y * MOUSE_SENS, -1.45, 1.45)
+		turn(-motion.relative.x * MOUSE_SENS, -motion.relative.y * MOUSE_SENS)
 	elif button and button.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		capture_mouse()
 		get_viewport().set_input_as_handled()
@@ -142,7 +168,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y = JUMP_VELOCITY
 		Sfx.play("jump", 1.0, -10.0)
 	var input := Vector2.ZERO
-	if can_move:
+	if automation:
+		input = sim_move
+	elif can_move:
 		input.x = float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
 		input.y = float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))
 	var dir := (global_basis * Vector3(input.x, 0, input.y)).normalized()
@@ -200,7 +228,7 @@ func net_state() -> Dictionary:
 	var d := fishing.net_state()
 	d["p"] = global_position
 	d["y"] = rotation.y
-	d["x"] = camera.rotation.x
+	d["x"] = pitch
 	d["i"] = Game.current_island
 	return d
 

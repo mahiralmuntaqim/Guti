@@ -26,6 +26,7 @@ var _trophy_timer := 0.0
 
 
 func _ready() -> void:
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # smoothed per frame in _process
 	var body := MeshInstance3D.new()
 	var cap := CapsuleMesh.new()
 	cap.radius = 0.35

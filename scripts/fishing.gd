@@ -54,6 +54,7 @@ func _ready() -> void:
 	_line.mesh = _line_mesh
 	_line.top_level = true
 	_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_line.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # rebuilt every frame
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = Color(0.95, 0.95, 0.9)
@@ -97,6 +98,8 @@ func _physics_process(delta: float) -> void:
 		State.FIGHT:
 			_process_fight(delta, pressed)
 
+
+func _process(delta: float) -> void:
 	_update_line()
 	if _trophy:
 		_trophy_timer -= delta
@@ -132,6 +135,7 @@ func _cast() -> void:
 	bobber = Bobber.new()
 	get_tree().current_scene.add_child(bobber)
 	bobber.global_position = player.rod_tip.global_position
+	bobber.reset_physics_interpolation()  # appear at the rod tip, not lerp in from the origin
 	var fwd: Vector3 = -player.camera.global_basis.z
 	bobber.linear_velocity = fwd * (5.0 + 13.0 * charge) + Vector3.UP * (2.0 + 2.0 * charge)
 	state = State.WAITING
@@ -190,6 +194,8 @@ func _start_fight() -> void:
 	_fight_fish = FishModel.build(hooked_id, hooked_size, hooked_golden)
 	_fight_fish.top_level = true
 	get_tree().current_scene.add_child(_fight_fish)
+	_fight_fish.global_position = bobber.global_position + Vector3(0, -0.35, 0)
+	_fight_fish.reset_physics_interpolation()
 	Sfx.play_at("splash", bobber.global_position)
 
 
@@ -324,8 +330,10 @@ func _update_line() -> void:
 	_line_mesh.clear_surfaces()
 	if not is_instance_valid(bobber):
 		return
+	# rod tip follows the render-rate camera; the bobber is a physics body, so use its
+	# interpolated position to keep the line glued to what you see
 	var a: Vector3 = player.rod_tip.global_position
-	var b := bobber.global_position
+	var b := bobber.get_global_transform_interpolated().origin
 	var sag := 0.0 if state == State.FIGHT else minf(a.distance_to(b) * 0.06, 1.2)
 	_line_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
 	for i in range(17):

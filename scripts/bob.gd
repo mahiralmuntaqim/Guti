@@ -6,6 +6,7 @@ var _base_y := 0.0
 
 func _ready() -> void:
 	_base_y = position.y
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # animated in _process
 
 
 func _process(_delta: float) -> void:

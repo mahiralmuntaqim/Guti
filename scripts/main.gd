@@ -44,7 +44,7 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	if "--look-back" in args:  # screenshot helper: face the island instead of the sea
 		player.rotation.y = 0.0
-		player.camera.rotation.x = deg_to_rad(-8)
+		player.pitch = deg_to_rad(-8)
 	for a in args:
 		if a.begins_with("--smoke"):
 			var tests: Node = preload("res://scripts/tests.gd").new()

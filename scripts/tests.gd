@@ -25,6 +25,8 @@ func _ready() -> void:
 		_finish(await _core_loop())
 	elif "--smoke-islands" in args:
 		_finish(await _islands())
+	elif "--smoke-perf" in args:
+		_finish(await _perf())
 	elif "--smoke-gallery" in args:
 		_finish(await _gallery())
 	elif "--smoke-host" in args:
@@ -307,4 +309,67 @@ func _gallery() -> bool:
 	main.water.follow = cam
 	await _frames(15)
 	await _shot("avatar")
+	return true
+
+
+## Frame-time probe: sweeps the camera across the island for 8 s and reports FPS, frame-time
+## spread and how much the camera moves per rendered frame (uneven steps = visible judder).
+func _perf() -> bool:
+	await _frames(60)  # let shaders compile
+	var p: Player = main.player
+	var times := PackedFloat32Array()
+	var cam_steps := PackedFloat32Array()
+	var last_yaw: float = p.camera.global_rotation.y
+	var last_pos: Vector3 = p.camera.global_position
+	var move_steps := PackedFloat32Array()
+	p.rotation.y = 0.0  # face the island and walk up the dock
+	p.sim_move = Vector2(0, -1)
+	var t0 := Time.get_ticks_usec()
+	var last := t0
+	while Time.get_ticks_usec() - t0 < 8_000_000:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		var dt := (now - last) / 1000.0
+		last = now
+		times.append(dt)
+		p.turn(deg_to_rad(10.0) * dt / 1000.0, 0.0)  # slow steady pan
+		var yaw: float = p.camera.global_rotation.y
+		cam_steps.append(absf(angle_difference(last_yaw, yaw)) / maxf(dt, 0.001))
+		last_yaw = yaw
+		var pos: Vector3 = p.camera.global_position
+		move_steps.append(Vector2(pos.x - last_pos.x, pos.z - last_pos.z).length() / maxf(dt, 0.001))
+		last_pos = pos
+		if Time.get_ticks_usec() - t0 > 3_500_000:
+			p.sim_move = Vector2.ZERO  # stop before walking off the end of the island
+	p.sim_move = Vector2.ZERO
+	var walk := move_steps.slice(30, int(move_steps.size() * 0.4))
+	var walk_mean := 0.0
+	for w in walk:
+		walk_mean += w
+	walk_mean /= maxf(walk.size(), 1)
+	var walk_dev := 0.0
+	for w in walk:
+		walk_dev += absf(w - walk_mean)
+	walk_dev /= maxf(walk.size(), 1)
+	print("[smoke] perf: walking speed per frame mean=%.2f m/s  movement judder=%.1f%%" % [walk_mean * 1000.0, 100.0 * walk_dev / maxf(walk_mean, 0.0001)])
+	var sorted := times.duplicate()
+	sorted.sort()
+	var avg := 0.0
+	for x in times:
+		avg += x
+	avg /= times.size()
+	# judder: how far each frame's camera angular speed deviates from the mean speed
+	var mean_speed := 0.0
+	for c in cam_steps:
+		mean_speed += c
+	mean_speed /= cam_steps.size()
+	var dev := 0.0
+	for c in cam_steps:
+		dev += absf(c - mean_speed)
+	dev /= cam_steps.size()
+	print("[smoke] perf: frames=%d avg_fps=%.1f avg_ms=%.2f p99_ms=%.2f max_ms=%.2f refresh=%.0fHz physics=%dHz interp=%s judder=%.1f%%" % [
+		times.size(), 1000.0 / avg, avg, sorted[int(sorted.size() * 0.99)], sorted[-1],
+		DisplayServer.screen_get_refresh_rate(), Engine.physics_ticks_per_second,
+		ProjectSettings.get_setting("physics/common/physics_interpolation", false),
+		100.0 * dev / maxf(mean_speed, 0.0001)])
 	return true

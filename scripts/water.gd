@@ -82,12 +82,20 @@ func _ready() -> void:
 	_material.set_shader_parameter("amp2", AMP2)
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # moved in _process
 	position.y = LEVEL
 
 
 func _physics_process(delta: float) -> void:
+	# simulation time advances on physics ticks so floating objects see a steady wave
 	time += delta
-	_material.set_shader_parameter("wave_time", time)
+
+
+func _process(_delta: float) -> void:
+	# the visible wave runs ahead by the fraction of a tick since the last physics step,
+	# so the surface animates smoothly between ticks at any refresh rate
+	var frac := Engine.get_physics_interpolation_fraction()
+	_material.set_shader_parameter("wave_time", time + frac / float(Engine.physics_ticks_per_second))
 	if follow:
 		position.x = snappedf(follow.global_position.x, GRID_STEP)
 		position.z = snappedf(follow.global_position.z, GRID_STEP)

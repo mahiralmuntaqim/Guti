@@ -148,10 +148,10 @@ namespace BrineTime
 
         public static readonly RodDef[] Rods =
         {
-            new RodDef { Name = "Driftwood Rod", Cost = 0, Reel = 2.2f, Line = 1.0f, Cast = 1.0f },
-            new RodDef { Name = "Bamboo Rod", Cost = 90, Reel = 3.0f, Line = 1.3f, Cast = 1.08f },
-            new RodDef { Name = "Carbon Rod", Cost = 750, Reel = 4.0f, Line = 1.7f, Cast = 1.16f },
-            new RodDef { Name = "Storm Rod", Cost = 6000, Reel = 5.2f, Line = 2.2f, Cast = 1.25f },
+            new RodDef { Name = "Driftwood Rod", Cost = 0, Reel = 2.95f, Line = 1.0f, Cast = 1.0f },
+            new RodDef { Name = "Bamboo Rod", Cost = 75, Reel = 4.05f, Line = 1.3f, Cast = 1.08f },
+            new RodDef { Name = "Carbon Rod", Cost = 750, Reel = 5.4f, Line = 1.7f, Cast = 1.16f },
+            new RodDef { Name = "Storm Rod", Cost = 7000, Reel = 7.0f, Line = 2.2f, Cast = 1.25f },
         };
 
         public static readonly CoolerDef[] Coolers =
@@ -169,7 +169,7 @@ namespace BrineTime
                 Exclusive = new Dictionary<string, Dictionary<string, int>>() },
             new IslandDef { Id = "coral", Name = "Coral Key", Origin = new Vector3(420, 0, -160), Theme = "coral",
                 Sand = C(0.96f, 0.88f, 0.82f), Grass = C(0.5f, 0.74f, 0.42f), Rock = C(0.95f, 0.5f, 0.55f),
-                Baits = new[] { 0, 1, 2 }, MaxRod = 2, MaxCooler = 2, Cost = 300, Species = 5,
+                Baits = new[] { 0, 1, 2 }, MaxRod = 2, MaxCooler = 2, Cost = 350, Species = 5,
                 Exclusive = new Dictionary<string, Dictionary<string, int>>
                 {
                     { "worm", new Dictionary<string, int> { { "candy_wrasse", 10 } } },

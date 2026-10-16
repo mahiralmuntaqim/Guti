@@ -20,12 +20,12 @@ namespace BrineTime
     /// </summary>
     public sealed class FightModel
     {
-        public const float FishPull = 2.8f;      // m/s a fish swims away per unit strength when you're not reeling
+        public const float FishPull = 3.8f;      // m/s a fish swims away per unit strength when you're not reeling
         public const float HeldPull = 0.6f;      // fraction of that pull that still drags line while you reel
         public const float TensionGain = 1.5f;   // tension build-up per unit strength while reeling (/ rod line)
         public const float TensionBase = 0.3f;   // tension build-up from reeling itself (/ rod line)
         public const float TensionRelax = 1.0f;  // tension recovery per second when you let go
-        public const float LandDistance = 1.8f, EscapeMargin = 8f, StartTension = 0.15f;
+        public const float LandDistance = 1.8f, EscapeMargin = 10.8f, StartTension = 0.15f;
         public const float FatigueSlow = 0.35f;     // fraction of strength lost when fully tired
         public const float FatigueRecover = 0.3f;   // released: fatigue recovers at this fraction of the drain rate
 

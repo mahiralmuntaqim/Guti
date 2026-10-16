@@ -324,7 +324,7 @@ namespace BrineTime
             var result = _fight.Step(_pressed, dt);
             Tension = _fight.Tension;
             Distance = _fight.Distance;
-            if (_pressed) ReelTicks(dt, _fight.Reel / 2.2f);
+            if (_pressed) ReelTicks(dt, _fight.Reel / 2.95f);
             bool lungeStart = _fight.Lunging && !wasLunging;
             if (lungeStart) _player.AddShake(0.35f);
 

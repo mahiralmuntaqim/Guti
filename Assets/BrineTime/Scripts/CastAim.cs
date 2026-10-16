@@ -9,9 +9,9 @@ namespace BrineTime
     public class CastAim : MonoBehaviour
     {
         const int Segments = 32;
-        const float Radius = 0.45f;
-        static readonly Color WaterColor = new Color(0.85f, 0.97f, 1f, 0.55f);
-        static readonly Color LandColor = new Color(1f, 0.6f, 0.25f, 0.6f);
+        const float Radius = 0.6f;
+        static readonly Color WaterColor = new Color(0.92f, 1f, 1f, 0.8f);
+        static readonly Color LandColor = new Color(1f, 0.6f, 0.25f, 0.85f);
 
         Fishing _fishing;
         LineRenderer _ring;
@@ -46,6 +46,9 @@ namespace BrineTime
             var c = _fishing.AimOnWater ? WaterColor : LandColor;
             c.a *= _alpha;
             _ring.startColor = _ring.endColor = c;
+            // keep the ring readable far out: thicker with distance from the eye
+            float dist = Vector3.Distance(Camera.main != null ? Camera.main.transform.position : transform.position, _shown);
+            _ring.startWidth = _ring.endWidth = 0.04f + 0.006f * dist;
             float r = Radius * (1f + 0.08f * Mathf.Sin(Time.time * 5f));
             for (int i = 0; i < Segments; i++)
             {
